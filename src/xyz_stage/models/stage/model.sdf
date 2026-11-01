@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<sdf version="1.7">
+
+  <model name="stage">
+
+    <static>true</static>
+
+    <link name="base">
+
+      <visual name="visual">
+
+        <geometry>
+          <box>
+            <size>1.0 1.0 0.05</size>
+          </box>
+        </geometry>
+
+        <material>
+          <ambient>1 1 1 1</ambient>
+        </material>
+
+      </visual>
+
+    </link>
+
+  </model>
+
+</sdf>

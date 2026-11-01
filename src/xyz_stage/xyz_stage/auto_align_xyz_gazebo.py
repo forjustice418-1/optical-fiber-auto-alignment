@@ -1,0 +1,224 @@
+import math
+import random
+import subprocess
+import time
+
+# 導波路入口座標
+waveguide_x = 0.15
+waveguide_y = 0.00
+waveguide_z = 0.08
+
+# ファイバー開始位置
+rx_x = 1.0
+rx_y = 0.03
+rx_z = 0.08
+
+# パラメータ
+
+step_x = 0.01
+step_y = 0.0
+step_z = 0.005
+safe_gap = 0.05
+position_error = 0.005
+
+history = []
+
+
+def actual_position(x, y, z):
+
+    return (
+        x + random.uniform(
+            -position_error,
+            position_error
+        ),
+        y + random.uniform(
+            -position_error,
+            position_error
+        ),
+        z + random.uniform(
+            -position_error,
+            position_error
+        )
+    )
+
+
+def power(x, y, z):
+
+    optimal_x = waveguide_x + safe_gap
+    optimal_y = waveguide_y
+    optimal_z = waveguide_z
+
+    fiber_tip_x = x - 0.25
+    dx = optimal_x - fiber_tip_x
+    dy = optimal_y - y
+    dz = optimal_z - z
+
+    base = (
+        math.exp(-(dx * dx) * 25)
+        * math.exp(-(dy * dy) * 25)
+        * math.exp(-(dz * dz) * 200)
+    )
+
+    ripple = 1.0
+
+    noise = 0.0
+
+    return max(
+        0.0,
+        base * ripple + noise
+    )
+
+
+for i in range(150):
+
+    ax, ay, az = actual_position(
+        rx_x,
+        rx_y,
+        rx_z
+    )
+
+    current = power(
+        ax,
+        ay,
+        az
+    )
+
+    candidates = [
+
+    (rx_x + step_x, rx_y, rx_z),
+    (rx_x - step_x, rx_y, rx_z),
+    ]
+
+    best_power = current
+    best_pos = (rx_x, rx_y, rx_z)
+
+    for x, y, z in candidates:
+        tip_x = x - 0.25
+
+        if tip_x < waveguide_x + safe_gap:
+            continue
+
+
+        ax, ay, az = actual_position(
+            x,
+            y,
+            z
+        )
+
+        p = power(
+            ax,
+            ay,
+            az
+        )
+
+        if p > best_power:
+
+            best_power = p
+            best_pos = (
+                x,
+                y,
+                z
+            )
+
+    rx_x, rx_y, rx_z = best_pos
+
+    optimal_x = waveguide_x + safe_gap
+
+    fiber_tip_x = rx_x - 0.25
+
+    gap = abs(optimal_x - fiber_tip_x)
+
+    if gap > 0.30:
+        step_x = 0.05
+    elif gap > 0.10:
+        step_x = 0.02
+    else:
+        step_x = 0.005
+
+    if rx_x < optimal_x:
+        rx_x = optimal_x
+
+    subprocess.run(
+        [
+            "gz",
+            "model",
+            "-m",
+            "rx_fiber",
+            "-x",
+            str(rx_x),
+            "-y",
+            str(rx_y),
+            "-z",
+            str(rx_z)
+        ]
+    )
+
+    tip_x = rx_x - 1.5
+    tip_y = rx_y
+    tip_z = rx_z
+
+    subprocess.run(
+        [
+        "gz",
+        "model",
+        "-m",
+        "fiber_tip",
+        "-x",
+        str(tip_x),
+        "-y",
+        str(tip_y),
+        "-z",
+        str(tip_z)
+        ]
+    )
+    gap = math.sqrt(
+        (rx_x - waveguide_x) ** 2 +
+        (rx_y - waveguide_y) ** 2 +
+        (rx_z - waveguide_z) ** 2
+    )
+
+    history.append(
+        [
+            i,
+            rx_x,
+            rx_y,
+            rx_z,
+            gap,
+            best_power
+        ]
+    )
+
+    print(
+        f"{i:03d}",
+        f"gap={gap:.4f}",
+        f"x={rx_x:.3f}",
+        f"y={rx_y:.3f}",
+        f"z={rx_z:.3f}",
+        f"power={best_power:.5f}"
+    )
+
+    time.sleep(0.01)
+
+with open(
+    "alignment_history.csv",
+    "w"
+) as f:
+
+    f.write(
+        "step,x,y,z,gap,power\n"
+    )
+
+    for row in history:
+
+        f.write(
+            f"{row[0]},"
+            f"{row[1]},"
+            f"{row[2]},"
+            f"{row[3]},"
+            f"{row[4]},"
+            f"{row[5]}\n"
+        )
+
+print("")
+print("alignment_history.csv saved")
+print(f"safe_gap = {safe_gap}")

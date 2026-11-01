@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<sdf version="1.7">
+
+  <model name="tx_fiber">
+
+    <static>true</static>
+
+    <link name="tx">
+
+      <pose>-1.2 0 0.08 0 1.5708 0</pose>
+
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.01</radius>
+            <length>0.3</length>
+          </cylinder>
+        </geometry>
+
+        <material>
+          <ambient>1 0 0 1</ambient>
+        </material>
+
+      </visual>
+
+    </link>
+
+  </model>
+
+</sdf>
