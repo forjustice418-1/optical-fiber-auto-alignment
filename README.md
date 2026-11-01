@@ -1,4 +1,3 @@
-
 Optical Fiber Auto Alignment
 
 Overview
